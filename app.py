@@ -1,12 +1,16 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, g
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, g, abort
 from database import init_db, get_db_connection
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import sqlite3
 import os
 from datetime import datetime
+import hmac
+import hashlib
+import subprocess
 
 app = Flask(__name__)
+GITHUB_SECRET = 'multimakerspace'
 app.secret_key = 'your-secret-key-here'
 
 # Media configuration
@@ -27,6 +31,49 @@ init_db()
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/webhook', methods=['POST', 'GET'])
+def webhook():
+    if request.method == 'POST':
+        # Verify GitHub signature (security)
+        signature = request.headers.get('X-Hub-Signature-256')
+        if signature:
+            payload = request.get_data()
+            expected_sig = 'sha256=' + hmac.new(
+                GITHUB_SECRET.encode(), 
+                payload, 
+                hashlib.sha256
+            ).hexdigest()
+            if not hmac.compare_digest(signature, expected_sig):
+                return 'Invalid signature', 403
+        
+        data = request.json
+        print("GitHub webhook received:", data)
+        
+        # Deployment logic
+        try:
+            project_path = r'C:\Users\PC-USER\Downloads\multimakerspace_website'
+            
+            # Change to project directory
+            os.chdir(project_path)
+            
+            # Pull latest code from GitHub
+            result = subprocess.run(['git', 'pull', 'origin', 'main'], 
+                                   capture_output=True, 
+                                   text=True)
+            
+            print("Git pull output:", result.stdout)
+            if result.stderr:
+                print("Git pull errors:", result.stderr)
+            
+            return f'Deployment successful! Changes pulled from GitHub.', 200
+        
+        except Exception as e:
+            print(f"Deployment failed: {str(e)}")
+            return f'Deployment failed: {str(e)}', 500
+    
+    elif request.method == 'GET':
+        return 'GET request received', 200
 
 @app.route('/stem-q')
 def stem_q():
