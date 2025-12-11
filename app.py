@@ -35,9 +35,9 @@ def index():
 @app.route('/webhook', methods=['POST', 'GET'])
 def webhook():
     if request.method == 'POST':
-        # Verify GitHub signature (security)
+        # Verify GitHub signature (optional - skip for testing)
         signature = request.headers.get('X-Hub-Signature-256')
-        if signature:
+        if signature:  # Only verify if GitHub signature is present
             payload = request.get_data()
             expected_sig = 'sha256=' + hmac.new(
                 GITHUB_SECRET.encode(), 
@@ -47,33 +47,21 @@ def webhook():
             if not hmac.compare_digest(signature, expected_sig):
                 return 'Invalid signature', 403
         
-        data = request.json
-        print("GitHub webhook received:", data)
-        
-        # Deployment logic
         try:
             project_path = os.path.dirname(os.path.abspath(__file__))
-            
-            # Change to project directory
             os.chdir(project_path)
-            
-            # Pull latest code from GitHub
             result = subprocess.run(['git', 'pull', 'origin', 'main'], 
                                    capture_output=True, 
                                    text=True)
-            
             print("Git pull output:", result.stdout)
-            if result.stderr:
-                print("Git pull errors:", result.stderr)
-            
-            return f'Deployment successful! Changes pulled from GitHub.', 200
-        
+            return 'Deployment successful!', 200
         except Exception as e:
             print(f"Deployment failed: {str(e)}")
             return f'Deployment failed: {str(e)}', 500
     
     elif request.method == 'GET':
         return 'GET request received', 200
+
 
 @app.route('/stem-q')
 def stem_q():
@@ -674,4 +662,5 @@ def test_admin():
 
 if __name__ == '__main__':
     app.run(debug=False)
+
 
