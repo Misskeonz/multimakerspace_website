@@ -52,7 +52,7 @@ def webhook():
         
         # Deployment logic
         try:
-            project_path = r'C:\Users\PC-USER\Downloads\multimakerspace_website'
+            project_path = os.path.dirname(os.path.abspath(__file__))
             
             # Change to project directory
             os.chdir(project_path)
@@ -674,3 +674,4 @@ def test_admin():
 
 if __name__ == '__main__':
     app.run(debug=False)
+
