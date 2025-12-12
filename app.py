@@ -35,9 +35,8 @@ def index():
 @app.route('/webhook', methods=['POST', 'GET'])
 def webhook():
     if request.method == 'POST':
-        # Verify GitHub signature (optional - skip for testing)
         signature = request.headers.get('X-Hub-Signature-256')
-        if signature:  # Only verify if GitHub signature is present
+        if signature: 
             payload = request.get_data()
             expected_sig = 'sha256=' + hmac.new(
                 GITHUB_SECRET.encode(), 
@@ -662,5 +661,6 @@ def test_admin():
 
 if __name__ == '__main__':
     app.run(debug=False)
+
 
 
